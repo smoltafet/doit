@@ -54,15 +54,30 @@ class Forget(DoitCmdBase):
             tasks = dict([(t.name, t) for t in self.task_list])
             check_tasks_exist(tasks, self.sel_tasks)
             forget_list = self.sel_tasks
+            if forget_list is None:
+                # no task selected from command line and no
+                # 'default_tasks' configured: forget all tasks,
+                # mirroring how `run` and `clean` treat this case
+                forget_list = [task.name for task in self.task_list]
 
             if forget_sub:
-                to_forget = list(tasks_and_deps_iter(tasks, forget_list, True))
+                candidates = tasks_and_deps_iter(tasks, forget_list, True)
             else:
-                to_forget = []
+                candidates = []
                 for name in forget_list:
                     task = tasks[name]
+                    candidates.append(task)
+                    candidates.extend(subtasks_iter(tasks, task))
+
+            # a list built from all tasks also contains the subtasks of
+            # group tasks (and dependencies shared by several tasks):
+            # forget each task only once
+            to_forget = []
+            seen = set()
+            for task in candidates:
+                if task.name not in seen:
+                    seen.add(task.name)
                     to_forget.append(task)
-                    to_forget.extend(subtasks_iter(tasks, task))
 
             for task in to_forget:
                 # forget it - remove from dependency file

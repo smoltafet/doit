@@ -524,6 +524,16 @@ class DoitCmdBase(Command):
         self.loader.setup(params)
         dodo_config = self.loader.load_doit_config()
 
+        # 'default_tasks' is not a registered command option, so a value
+        # coming from a config file or from DoitMain(extra_config=...)
+        # (both available in self.config_vals) would be silently dropped
+        # by the option parser. Register it as a default value here;
+        # the DOIT_CONFIG value merged below still takes precedence,
+        # exactly as it does for regular options.
+        if 'default_tasks' in self.config_vals:
+            params.set_default('default_tasks',
+                               self.config_vals['default_tasks'])
+
         # merge config values from dodo.py into params
         params.update_defaults(dodo_config)
 
